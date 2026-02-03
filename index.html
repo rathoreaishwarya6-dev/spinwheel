@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valentine Spin Wheel 💘</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#121a33;
+      --txt:#eaf0ff;
+      --muted:#aab6e6;
+      --accent:#ff4d88;
+      --ring: rgba(255,255,255,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 20% 10%, #1a2452, var(--bg));
+      color:var(--txt);
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:22px;
+    }
+    .wrap{width:min(920px,100%)}
+    .card{
+      background: linear-gradient(180deg, rgba(18,26,51,.92), rgba(18,26,51,.78));
+      border:1px solid var(--ring);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+    h1{
+      margin: 2px 0 10px;
+      font-size: clamp(20px, 3vw, 28px);
+      line-height:1.25;
+    }
+    .sub{
+      margin:0 0 16px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 860px){
+      .grid{ grid-template-columns: 420px 1fr; align-items:center; }
+    }
+
+    /* Wheel area */
+    .wheelBox{
+      display:grid;
+      place-items:center;
+      position:relative;
+      padding: 10px 0 0;
+    }
+    canvas{
+      width: min(360px, 85vw);
+      height: auto;
+      border-radius: 50%;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--ring);
+      box-shadow: 0 16px 40px rgba(0,0,0,.28);
+    }
+    .pointer{
+      position:absolute;
+      top: -2px;
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-bottom: 26px solid var(--accent);
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+    }
+    .hub{
+      position:absolute;
+      width: 70px;
+      height: 70px;
+      border-radius:50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.28), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.18);
+      display:grid;
+      place-items:center;
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+    }
+    .hub span{
+      font-size: 12px;
+      color: var(--muted);
+      text-align:center;
+      padding: 0 8px;
+      line-height:1.2;
+    }
+
+    /* Controls + result */
+    .panel{
+      padding: 8px 6px;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn{
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--ring);
+      background: rgba(255,255,255,.06);
+      color: var(--txt);
+      cursor:pointer;
+      font-weight: 600;
+      letter-spacing: .2px;
+      transition: transform .05s ease, border-color .2s ease, background .2s ease;
+      user-select:none;
+    }
+    .btn:hover{ border-color: rgba(255,77,136,.55); background: rgba(255,77,136,.12); }
+    .btn:active{ transform: scale(.99); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--ring);
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .result{
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,.22);
+      background: rgba(255,255,255,.04);
+      min-height: 64px;
+    }
+    .result .title{
+      font-size: 16px;
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    .result .desc{
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .fineprint{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    /* Confetti */
+    .confetti {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .confetti span{
+      position:absolute;
+      width:10px;
+      height:16px;
+      border-radius: 3px;
+      top:-30px;
+      opacity: .95;
+      animation: fall linear forwards;
+    }
+    @keyframes fall{
+      to { transform: translateY(110vh) rotate(540deg); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Avail your coupon for being the cutest bear 🐻💘</h1>
+      <p class="sub">Spin the wheel and see what you win.</p>
+
+      <div class="grid">
+        <div class="wheelBox">
+          <div class="pointer" aria-hidden="true"></div>
+          <canvas id="wheel" width="520" height="520" aria-label="spin wheel"></canvas>
+          <div class="hub" aria-hidden="true"><span>SPIN<br/>ME</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <button class="btn" id="spinBtn">Spin the wheel 🎡</button>
+            <button class="btn" id="resetBtn" type="button">Reset ↻</button>
+            <span class="pill" id="statusPill">Ready</span>
+          </div>
+
+          <div class="result" id="resultBox" aria-live="polite">
+            <p class="title">Result will appear here ✨</p>
+            <p class="desc">Hit “Spin the wheel” to begin.</p>
+          </div>
+
+          <div class="fineprint">
+            <b>Screenshot the result to your wife to avail the offer.</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+  // ====== Customize options here if you ever want ======
+  const OPTIONS = [
+    "Free movie date 🍿",
+    "Free dress-up dinner date ✨",
+    "Free puchis 😘",
+    "Free massage 💆‍♂️",
+    "A fine dining experience by Chef Bubu 👨‍🍳",
+    "Better luck next time 😄"
+  ];
+
+  // Wheel drawing settings
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+  const spinBtn = document.getElementById("spinBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const statusPill = document.getElementById("statusPill");
+  const resultBox = document.getElementById("resultBox");
+  const confetti = document.getElementById("confetti");
+
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const radius = Math.min(W,H) * 0.46;
+  const segCount = OPTIONS.length;
+  const segAngle = (Math.PI * 2) / segCount;
+
+  // Some pleasant but fixed palette (no external libs)
+  const COLORS = ["#ff4d88","#ff9fbe","#7c5cff","#2fd3b7","#ffd166","#4ea8de"];
+
+  let rotation = 0;      // current rotation radians
+  let spinning = false;
+
+  function drawWheel(rot){
+    ctx.clearRect(0,0,W,H);
+
+    // ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 10, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.lineWidth = 10;
+    ctx.stroke();
+
+    // segments
+    for(let i=0;i<segCount;i++){
+      const start = rot + i*segAngle;
+      const end = start + segAngle;
+
+      // segment wedge
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, start, end);
+      ctx.closePath();
+
+      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.globalAlpha = 0.95;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // segment border
+      ctx.strokeStyle = "rgba(0,0,0,.16)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // text
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + segAngle/2);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(10,12,20,.92)";
+      ctx.font = "700 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial";
+
+      const label = OPTIONS[i];
+      // wrap-ish (simple): split into two lines if too long
+      const maxChars = 20;
+      const line1 = label.length > maxChars ? label.slice(0, maxChars).trim() : label;
+      const line2 = label.length > maxChars ? label.slice(maxChars).trim() : "";
+
+      ctx.fillText(line1, radius - 14, 6);
+      if(line2) ctx.fillText(line2, radius - 14, 28);
+
+      ctx.restore();
+    }
+
+    // center circle (visual)
+    ctx.beginPath();
+    ctx.arc(cx, cy, 42, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(255,255,255,.08)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.16)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function setStatus(text){
+    statusPill.textContent = text;
+  }
+
+  function setResult(title, desc){
+    resultBox.innerHTML = `
+      <p class="title">${title}</p>
+      <p class="desc">${desc}</p>
+    `;
+  }
+
+  function rand(min, max){
+    return Math.random() * (max - min) + min;
+  }
+
+  function launchConfetti(){
+    confetti.innerHTML = "";
+    const pieces = 90;
+    for(let i=0;i<pieces;i++){
+      const s = document.createElement("span");
+      s.style.left = rand(0, 100) + "vw";
+      s.style.animationDuration = rand(1.8, 3.4) + "s";
+      s.style.animationDelay = rand(0, 0.2) + "s";
+      s.style.transform = `translateY(-30px) rotate(${rand(0, 360)}deg)`;
+      s.style.background = COLORS[i % COLORS.length];
+      s.style.width = rand(6, 12) + "px";
+      s.style.height = rand(10, 18) + "px";
+      confetti.appendChild(s);
+    }
+    // clear after
+    setTimeout(() => { confetti.innerHTML = ""; }, 4200);
+  }
+
+  function pickWinner(finalRotation){
+    // Pointer is at the top. We want which segment ends up under pointer.
+    // Our drawing uses segment start angles from rot; "top" is angle -90deg (or 3π/2)
+    // Convert to "wheel angle" where 0 is at +x, then adjust.
+    const pointerAngle = (Math.PI * 1.5); // top
+    const normalized = ((pointerAngle - finalRotation) % (Math.PI*2) + (Math.PI*2)) % (Math.PI*2);
+    const index = Math.floor(normalized / segAngle) % segCount;
+    return index;
+  }
+
+  function animateSpin(){
+    if(spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    setStatus("Spinning…");
+    setResult("Spinning…", "Good luck, cutest bear 🐻💘");
+
+    // Choose a target: 5–7 full turns + random extra
+    const extraTurns = rand(5, 7);
+    const extraAngle = rand(0, Math.PI*2);
+    const startRot = rotation;
+    const targetRot = startRot + extraTurns * Math.PI*2 + extraAngle;
+
+    const duration = rand(3200, 4200); // ms
+    const start = performance.now();
+
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+    function frame(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = easeOutCubic(t);
+      rotation = startRot + (targetRot - startRot) * eased;
+      drawWheel(rotation);
+
+      if(t < 1){
+        requestAnimationFrame(frame);
+      } else {
+        spinning = false;
+        spinBtn.disabled = false;
+        setStatus("Done");
+
+        const winIndex = pickWinner(rotation);
+        const prize = OPTIONS[winIndex];
+
+        if(prize.toLowerCase().includes("better luck")){
+          setResult("😄 Better luck next time!", "You still get extra love, okay? ❤️ (Spin again if your wife allows 😌)");
+        } else {
+          setResult("🎉 You won!", `<b>${prize}</b><br/>Screenshot this and send it to your wife to claim 💌`);
+          launchConfetti();
+        }
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function resetGame(){
+    rotation = 0;
+    drawWheel(rotation);
+    setStatus("Ready");
+    setResult("Result will appear here ✨", "Hit “Spin the wheel” to begin.");
+    confetti.innerHTML = "";
+    spinning = false;
+    spinBtn.disabled = false;
+  }
+
+  spinBtn.addEventListener("click", animateSpin);
+  resetBtn.addEventListener("click", resetGame);
+
+  // initial render
+  drawWheel(rotation);
+  setStatus("Ready");
+</script>
+</body>
+</html>
